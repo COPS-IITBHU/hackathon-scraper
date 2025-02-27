@@ -5,71 +5,44 @@ import HackathonCard from './HackathonCard'
 import { Skeleton } from '@/components/ui/skeleton'
 
 interface HackathonData {
-  title: string
+  name: string
+  date: string
+  link: string
   description: string
-  dates: string[]
-  about: string[]
+  category: string[]
+  "prize pool": string
+  "image sources": string[]
 }
 
 export default function HackathonList() {
   const [hackathons, setHackathons] = useState<HackathonData[]>([])
-  const [filteredHackathons, setFilteredHackathons] = useState<HackathonData[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [selectedMonths, setSelectedMonths] = useState<string[]>([])
 
   useEffect(() => {
     fetchHackathons()
   }, [])
 
-  useEffect(() => {
-    filterHackathons()
-  }, [hackathons, searchTerm, selectedMonths])
-
   const fetchHackathons = async () => {
     try {
-      const response = await fetch('/api/hackathons')
+      const response = await fetch("/api/hackathons")
       if (!response.ok) {
-        throw new Error('Failed to fetch hackathons')
+        throw new Error("Failed to fetch hackathons")
       }
       const data = await response.json()
       setHackathons(data)
       setIsLoading(false)
     } catch (err) {
-      setError('Failed to load hackathons. Please try again later.')
+      setError("Failed to load hackathons. Please try again later.")
       setIsLoading(false)
     }
   }
 
-  const filterHackathons = () => {
-    let filtered = hackathons
-
-    // Apply search filter
-    if (searchTerm) {
-      filtered = filtered.filter((hackathon) =>
-        hackathon.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        hackathon.description.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    }
-
-    // Apply month filter
-    if (selectedMonths.length > 0) {
-      filtered = filtered.filter((hackathon) =>
-        hackathon.dates.some((date) =>
-          selectedMonths.some((month) => date.toLowerCase().includes(month.toLowerCase()))
-        )
-      )
-    }
-
-    setFilteredHackathons(filtered)
-  }
-
   if (isLoading) {
     return (
-      <div className="space-y-4">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {[...Array(3)].map((_, index) => (
-          <Skeleton key={index} className="h-[200px] w-full rounded-lg" />
+          <Skeleton key={index} className="h-[400px] w-full rounded-xl" />
         ))}
       </div>
     )
@@ -81,8 +54,17 @@ export default function HackathonList() {
 
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-      {filteredHackathons.map((hackathon, index) => (
-        <HackathonCard key={index} {...hackathon} />
+      {hackathons.map((hackathon, index) => (
+        <HackathonCard
+          key={index}
+          name={hackathon.name}
+          date={hackathon.date}
+          link={hackathon.link}
+          description={hackathon.description}
+          category={hackathon.category}
+          prizePool={hackathon["prize pool"]}
+          imageSources={hackathon["image sources"]}
+        />
       ))}
     </div>
   )
