@@ -52,7 +52,7 @@ export default function VantaBackground() {
       color: isDark ? 0x00ffff : 0x008B8B,
       backgroundColor: isDark ? 0x000000 : 0xffffff,
       points: 15,  
-      maxDistance: 25,
+      maxDistance: 22,
       spacing: 15,
       showLines: true,
       colorMode: 'lerp'
