@@ -51,9 +51,11 @@ export default function VantaBackground() {
       scaleMobile: 1.0,
       color: isDark ? 0x00ffff : 0x008B8B,
       backgroundColor: isDark ? 0x000000 : 0xffffff,
-      points: 20,
-      maxDistance: 21,
-      spacing: 19,
+      points: 15,  
+      maxDistance: 22,
+      spacing: 15,
+      showLines: true,
+      colorMode: 'lerp'
     });
     console.log("Vanta effect initialized.");
   };
