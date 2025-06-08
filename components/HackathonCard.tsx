@@ -1,8 +1,8 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Calendar, Trophy, Tag, Clock, Sparkles } from 'lucide-react';
 import Image from 'next/image';
+import { GENERIC_HACKATHON_IMAGES } from '@/lib/utils';
 
 interface HackathonCardProps {
   name: string;
@@ -23,81 +23,133 @@ export default function HackathonCard({
   prizePool,
   imageSources,
 }: HackathonCardProps) {
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
+  const [showGlitch, setShowGlitch] = useState(false);
+  
+  // Always use generic images to avoid external image loading issues
+  const genericImage = '/images/generic-hackathon.png';
 
-  // Use generic fallback image if no valid images are provided.
-  const images =
-    imageSources && imageSources.length > 0 ? imageSources : ['/generic-hackathon.png'];
-
+  // Trigger glitch effect occasionally
   useEffect(() => {
-    if (images.length <= 1) return;
-    const timer = setInterval(() => {
-      setCurrentImageIndex((prevIndex) => (prevIndex + 1) % images.length);
-    }, 5000); // Change image every 5 seconds
-    return () => clearInterval(timer);
-  }, [images]);
+    const glitchInterval = setInterval(() => {
+      setShowGlitch(true);
+      setTimeout(() => setShowGlitch(false), 500);
+    }, 7000);
+    
+    return () => clearInterval(glitchInterval);
+  }, []);
+
+  // Format prize pool for display
+  const formattedPrizePool = Array.isArray(prizePool) 
+    ? prizePool.join(', ') 
+    : prizePool || 'N/A';
 
   return (
-    <Card className="overflow-visible isolation-auto hack-card relative">
-      <div className="card__border"></div>
-      <div className="card-content rounded-[inherit] overflow-hidden">
+    <div
+      className="hackathon-card border-glow transform transition-all duration-300 hover:-translate-y-2"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div className="relative overflow-hidden rounded-t-md">
+        {/* Glitch overlay */}
+        {showGlitch && (
+          <div 
+            className="absolute inset-0 z-10 bg-primary/10 animate-pulse"
+          />
+        )}
+        
+        {/* Image */}
         <div className="relative h-64 w-full">
-          {images.map((src, index) => {
-            // Ensure the image path starts with "http" or "/" 
-            const imageSrc = src.startsWith('http') || src.startsWith('/') ? src : `/${src}`;
-            return (
-              <Image
-                key={index}
-                src={imageSrc}
-                alt={`${name} image ${index + 1}`}
-                fill
-                style={{
-                  objectFit: 'fill',
-                  opacity: index === currentImageIndex ? 1 : 0,
-                  transition: 'opacity 0.5s ease-in-out',
-                }}
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.onerror = null; // Prevent infinite loop
-                  target.src = '/generic-hackathon.png';
-                }}
-              />
-            );
-          })}
+          <Image
+            src={genericImage}
+            alt={`${name} image`}
+            fill
+            className="object-cover"
+            priority={false}
+            loading="lazy"
+          />
+          
+          {/* Overlay gradient */}
+          <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent" />
+          
+          {/* Animated scan line */}
+          <div 
+            className="absolute inset-0 z-10 opacity-20 pointer-events-none animate-scanline"
+            style={{
+              background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, hsl(var(--primary)) 3px, transparent 3px)',
+              backgroundSize: '100% 4px',
+            }}
+          />
         </div>
-        <div className="p-6 space-y-4">
-          <div className="space-y-2">
-            <h3 className="text-3xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-purple-400 bg-clip-text text-transparent">
-              {name}
-            </h3>
-            <p className="text-md text-gray-400">{description}</p>
+      </div>
+      
+      <div className="p-6 space-y-6">
+        {/* Title with glitch effect */}
+        <h3 
+          className={`text-2xl font-cyberpunk neon-text tracking-wider ${
+            showGlitch ? 'animate-glitch' : ''
+          }`}
+          data-text={name}
+        >
+          {name}
+        </h3>
+        
+        {/* Description */}
+        <p className="text-md text-muted-foreground line-clamp-2">
+          {description || 'No description available'}
+        </p>
+        
+        {/* Details */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-sm">
+            <Calendar className="h-4 w-4 text-primary" />
+            <span>{date || 'Date TBA'}</span>
           </div>
-          <div className="space-y-2">
-            <p className="text-md text-purple-100">{date}</p>
-            <p className="text-md font-semibold text-green-400">
-              Prize Pool:{' '}
-              {Array.isArray(prizePool) ? prizePool.join(', ') : prizePool || 'N/A'}
-            </p>
+          
+          <div className="flex items-center gap-2 text-sm">
+            <Trophy className="h-4 w-4 text-warning" />
+            <span className="font-medium">
+              {formattedPrizePool}
+            </span>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {category.map((cat, index) => (
-              <span
-                key={index}
-                className="text-sm bg-blue-900/30 text-purple-300 px-2 py-1 rounded-full border border-purple-500/50"
-              >
-                {cat}
-              </span>
-            ))}
-          </div>
+        </div>
+        
+        {/* Categories */}
+        <div className="flex flex-wrap gap-2">
+          {category && category.map((cat, index) => (
+            <span
+              key={index}
+              className="cyberbadge hover:scale-105 active:scale-95 transition-transform"
+            >
+              {cat}
+            </span>
+          ))}
+        </div>
+        
+        {/* Action button */}
+        <div
+          className="transform transition-transform hover:scale-[1.02] active:scale-[0.98]"
+        >
           <Button
-            className="w-full neon-button bg-gradient-to-r from-blue-900 via-blue-600 to-blue-900 hover:from-blue-600 hover:via-blue-500 hover:to-blue-600 text-white font-medium py-6 shadow-[0_0_15px_rgba(147,51,234,0.5)] border border-purple-500/20"
+            className="w-full cyberpunk-button group relative overflow-hidden py-6"
             onClick={() => window.open(link, '_blank')}
           >
-            Register Now
-            <ExternalLink className="ml-2 h-4 w-4" />
+            <span className="relative z-10 flex items-center justify-center gap-2">
+              <Sparkles className="h-4 w-4 group-hover:animate-pulse" />
+              <span>Register Now</span>
+              <ExternalLink className="h-4 w-4" />
+            </span>
           </Button>
         </div>
       </div>
-    </Card>
+      
+      {/* Animated corner accent */}
+      <div className="absolute top-0 right-0">
+        <div 
+          className="w-16 h-16 bg-gradient-to-bl from-primary to-transparent animate-pulse"
+          style={{ clipPath: 'polygon(100% 0, 0 0, 100% 100%)' }}
+        />
+      </div>
+    </div>
   );
 }
