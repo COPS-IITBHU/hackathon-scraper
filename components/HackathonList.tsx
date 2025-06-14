@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import HackathonCard from './HackathonCard'
 import { Skeleton } from '@/components/ui/skeleton'
-import { AlertCircle, RefreshCw, ServerOff } from 'lucide-react'
+import { AlertCircle, RefreshCw, ServerOff, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from './ui/button'
 
 interface HackathonData {
@@ -23,7 +23,10 @@ export default function HackathonList() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isRetrying, setIsRetrying] = useState(false)
-  const [isVisible, setIsVisible] = useState(false)
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(6) // Show 6 hackathons per page
   
   // Filter states from global state
   const [selectedMonths, setSelectedMonths] = useState<string[]>([])
@@ -62,9 +65,6 @@ export default function HackathonList() {
       setHackathons(normalizedData)
       setFilteredHackathons(normalizedData)
       setIsLoading(false)
-      
-      // Trigger animation after data is loaded
-      setTimeout(() => setIsVisible(true), 100)
     } catch (err) {
       console.error("Error fetching hackathons:", err)
       setError("Failed to load hackathons. Please try again later.")
@@ -196,6 +196,7 @@ export default function HackathonList() {
     }
     
     setFilteredHackathons(filtered)
+    setCurrentPage(1) // Reset to first page when filters change
   }, [hackathons, selectedMonths, selectedCategories, selectedPrizes, selectedLocations, searchQuery])
 
   useEffect(() => {
@@ -206,102 +207,167 @@ export default function HackathonList() {
     setIsRetrying(true)
     fetchHackathons()
   }
-
-  if (isLoading) {
-    return (
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {[...Array(6)].map((_, index) => (
-          <div 
-            key={index} 
-            className="border-glow rounded-md overflow-hidden animate-pulse"
-            style={{ animationDelay: `${index * 0.1}s` }}
-          >
-            <div className="space-y-4">
-              <Skeleton className="h-64 w-full" />
-              <div className="p-6 space-y-4">
-                <Skeleton className="h-8 w-3/4" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-full" />
-                <div className="flex gap-2">
-                  <Skeleton className="h-6 w-16" />
-                  <Skeleton className="h-6 w-16" />
-                </div>
-                <Skeleton className="h-10 w-full" />
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div 
-        className="flex flex-col items-center justify-center p-10 border border-destructive/30 rounded-lg bg-card opacity-0 animate-fadeIn"
-        style={{ animationFillMode: 'forwards' }}
-      >
-        <ServerOff className="h-16 w-16 text-destructive mb-4" />
-        <h3 className="text-xl font-bold mb-2">Connection Error</h3>
-        <p className="text-muted-foreground text-center mb-6">{error}</p>
-        <Button 
-          onClick={handleRetry} 
-          className="cyberpunk-button"
-          disabled={isRetrying}
-        >
-          {isRetrying ? (
-            <>
-              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-              Retrying...
-            </>
-          ) : (
-            <>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Retry
-            </>
-          )}
-        </Button>
-      </div>
-    )
-  }
-
-  if (filteredHackathons.length === 0) {
-    return (
-      <div 
-        className="flex flex-col items-center justify-center p-10 border border-primary/30 rounded-lg bg-card opacity-0 animate-fadeIn"
-        style={{ animationFillMode: 'forwards' }}
-      >
-        <AlertCircle className="h-16 w-16 text-primary mb-4" />
-        <h3 className="text-xl font-bold mb-2">No Hackathons Found</h3>
-        <p className="text-muted-foreground text-center">
-          {hackathons.length > 0 
-            ? "No hackathons match your current filters. Try adjusting your search criteria."
-            : "Check back later for upcoming hackathon events."}
-        </p>
-      </div>
-    )
-  }
+  
+  // Calculate pagination
+  const indexOfLastItem = currentPage * itemsPerPage
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage
+  const currentItems = filteredHackathons.slice(indexOfFirstItem, indexOfLastItem)
+  const totalPages = Math.ceil(filteredHackathons.length / itemsPerPage)
+  
+  // Change page
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber)
+  const nextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages))
+  const prevPage = () => setCurrentPage(prev => Math.max(prev - 1, 1))
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-      {filteredHackathons.map((hackathon, index) => (
-        <div 
-          key={`${hackathon.name}-${index}`}
-          className={`opacity-0 ${isVisible ? 'animate-cardEntrance' : ''}`}
-          style={{ animationDelay: `${index * 0.1}s`, animationFillMode: 'forwards' }}
-        >
-          <HackathonCard
-            name={hackathon.name}
-            date={hackathon.date}
-            link={hackathon.link}
-            description={hackathon.description}
-            category={hackathon.category || []}
-            prizePool={hackathon["prize pool"]}
-            imageSources={hackathon["image sources"] || []}
-          />
+    <div className="space-y-8 relative">
+      {/* Decorative tech elements */}
+      <div className="hidden lg:block absolute -left-24 top-1/3 w-16 h-48 border-l-2 border-t-2 border-primary/20"></div>
+      <div className="hidden lg:block absolute -right-24 top-2/3 w-16 h-48 border-r-2 border-b-2 border-primary/20"></div>
+      
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-12">
+          <div className="relative">
+            <div className="h-16 w-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            <div className="absolute inset-0 border-4 border-primary/20 rounded-full"></div>
+          </div>
+          <p className="mt-6 text-muted-foreground font-cyberpunk tracking-wide">LOADING HACKATHONS...</p>
         </div>
-      ))}
+      ) : error ? (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <div className="relative">
+            <AlertCircle className="h-16 w-16 text-destructive" />
+            <div className="absolute inset-0 animate-ping opacity-50 text-destructive">
+              <AlertCircle className="h-16 w-16" />
+            </div>
+          </div>
+          <h3 className="text-xl font-medium mt-6 mb-2 font-cyberpunk">CONNECTION ERROR</h3>
+          <p className="text-muted-foreground mb-6 max-w-md">{error}</p>
+          <Button 
+            onClick={handleRetry} 
+            disabled={isRetrying}
+            className="cyber-button flex items-center gap-2 bg-destructive hover:bg-destructive/80"
+          >
+            {isRetrying ? (
+              <>
+                <div className="h-4 w-4 border-2 border-background border-t-transparent rounded-full animate-spin"></div>
+                <span>RETRYING...</span>
+              </>
+            ) : (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                <span>TRY AGAIN</span>
+              </>
+            )}
+          </Button>
+        </div>
+      ) : filteredHackathons.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <ServerOff className="h-16 w-16 text-muted-foreground mb-4" />
+          <h3 className="text-xl font-medium mb-2 font-cyberpunk">NO MATCHES FOUND</h3>
+          <p className="text-muted-foreground max-w-md">
+            No hackathons match your current filters. Try adjusting your search criteria.
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* Results count */}
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Showing <span className="font-medium text-primary">{indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredHackathons.length)}</span> of <span className="font-medium text-primary">{filteredHackathons.length}</span> hackathons
+            </p>
+            
+            {/* Items per page selector */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Show:</span>
+              <select 
+                className="bg-card border border-border rounded-md px-2 py-1 text-sm"
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value))
+                  setCurrentPage(1) // Reset to first page when changing items per page
+                }}
+              >
+                <option value={6}>6</option>
+                <option value={9}>9</option>
+                <option value={12}>12</option>
+              </select>
+            </div>
+          </div>
+          
+          {/* Hackathon cards with improved grid */}
+          <div className="hackathon-grid">
+            {currentItems.map((hackathon, index) => (
+              <HackathonCard
+                key={`${hackathon.name}-${index}`}
+                name={hackathon.name}
+                date={hackathon.date}
+                link={hackathon.link}
+                description={hackathon.description}
+                category={hackathon.category}
+                prizePool={hackathon["prize pool"]}
+                imageSources={hackathon["image sources"]}
+                type={hackathon.type}
+              />
+            ))}
+          </div>
+          
+          {/* Pagination controls */}
+          {totalPages > 1 && (
+            <div className="flex justify-center mt-8 items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={prevPage} 
+                disabled={currentPage === 1}
+                className="h-8 w-8 border-primary/30"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              
+              {/* Page numbers */}
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  // Show pages around current page
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={currentPage === pageNum ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => paginate(pageNum)}
+                      className={`h-8 w-8 p-0 ${currentPage === pageNum ? 'bg-primary text-primary-foreground' : 'border-primary/30'}`}
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                })}
+              </div>
+              
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={nextPage} 
+                disabled={currentPage === totalPages}
+                className="h-8 w-8 border-primary/30"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </>
+      )}
     </div>
-  )
+  );
 }
 

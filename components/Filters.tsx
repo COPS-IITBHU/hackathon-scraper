@@ -2,15 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { ChevronDown, Calendar, Tag, Trophy, Star, Zap, Filter, X } from 'lucide-react'
+import { Check, ChevronDown, X, Calendar, Tag, Trophy, Globe } from 'lucide-react'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 
 // Filter categories
 const months = [
@@ -19,16 +13,15 @@ const months = [
 ]
 
 const categories = [
-  'Web3', 'AI/ML', 'Mobile', 'Web', 'Blockchain', 'Game Dev',
-  'AR/VR', 'IoT', 'Cloud', 'Fintech', 'Health', 'Education'
+  'AI', 'Web3', 'Software Development'
 ]
 
-const prizeRanges = [
+const prizes = [
   'Under $1K', '$1K - $5K', '$5K - $10K', '$10K - $50K', '$50K - $100K', '$100K+'
 ]
 
 const locations = [
-  'Online', 'In-person', 'Hybrid'
+  'Online', 'In-person'
 ]
 
 export default function Filters() {
@@ -36,64 +29,59 @@ export default function Filters() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [selectedPrizes, setSelectedPrizes] = useState<string[]>([])
   const [selectedLocations, setSelectedLocations] = useState<string[]>([])
-  const [activeFiltersCount, setActiveFiltersCount] = useState(0)
-  const [isVisible, setIsVisible] = useState(false)
   
-  // Show component with animation after mount
+  // Popover open states
+  const [monthsOpen, setMonthsOpen] = useState(false)
+  const [categoriesOpen, setCategoriesOpen] = useState(false)
+  const [prizesOpen, setPrizesOpen] = useState(false)
+  const [locationsOpen, setLocationsOpen] = useState(false)
+  
+  // Emit filter changes as custom events
   useEffect(() => {
-    setIsVisible(true)
-  }, [])
+    window.dispatchEvent(new CustomEvent('monthFilter', { detail: selectedMonths }))
+  }, [selectedMonths])
   
-  // Update active filters count and dispatch events
   useEffect(() => {
-    const count = selectedMonths.length + 
-                  selectedCategories.length + 
-                  selectedPrizes.length + 
-                  selectedLocations.length
-    setActiveFiltersCount(count)
-    
-    // Dispatch custom events for filters
-    dispatchFilterEvent('monthFilter', selectedMonths)
-    dispatchFilterEvent('categoryFilter', selectedCategories)
-    dispatchFilterEvent('prizeFilter', selectedPrizes)
-    dispatchFilterEvent('locationFilter', selectedLocations)
-  }, [selectedMonths, selectedCategories, selectedPrizes, selectedLocations])
+    window.dispatchEvent(new CustomEvent('categoryFilter', { detail: selectedCategories }))
+  }, [selectedCategories])
   
-  // Helper function to dispatch custom events
-  const dispatchFilterEvent = (eventName: string, detail: any) => {
-    const event = new CustomEvent(eventName, { detail })
-    window.dispatchEvent(event)
-  }
-
-  // Toggle handlers
-  const handleMonthToggle = (month: string) => {
-    setSelectedMonths((prev) =>
-      prev.includes(month)
-        ? prev.filter((m) => m !== month)
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('prizeFilter', { detail: selectedPrizes }))
+  }, [selectedPrizes])
+  
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('locationFilter', { detail: selectedLocations }))
+  }, [selectedLocations])
+  
+  // Toggle selection handlers
+  const toggleMonth = (month: string) => {
+    setSelectedMonths(prev => 
+      prev.includes(month) 
+        ? prev.filter(m => m !== month) 
         : [...prev, month]
     )
   }
-
-  const handleCategoryToggle = (category: string) => {
-    setSelectedCategories((prev) =>
-      prev.includes(category)
-        ? prev.filter((c) => c !== category)
+  
+  const toggleCategory = (category: string) => {
+    setSelectedCategories(prev => 
+      prev.includes(category) 
+        ? prev.filter(c => c !== category) 
         : [...prev, category]
     )
   }
-
-  const handlePrizeToggle = (prize: string) => {
-    setSelectedPrizes((prev) =>
-      prev.includes(prize)
-        ? prev.filter((p) => p !== prize)
+  
+  const togglePrize = (prize: string) => {
+    setSelectedPrizes(prev => 
+      prev.includes(prize) 
+        ? prev.filter(p => p !== prize) 
         : [...prev, prize]
     )
   }
-
-  const handleLocationToggle = (location: string) => {
-    setSelectedLocations((prev) =>
-      prev.includes(location)
-        ? prev.filter((l) => l !== location)
+  
+  const toggleLocation = (location: string) => {
+    setSelectedLocations(prev => 
+      prev.includes(location) 
+        ? prev.filter(l => l !== location) 
         : [...prev, location]
     )
   }
@@ -105,120 +93,262 @@ export default function Filters() {
     setSelectedPrizes([])
     setSelectedLocations([])
   }
-
+  
+  // Count active filters
+  const activeFilterCount = 
+    selectedMonths.length + 
+    selectedCategories.length + 
+    selectedPrizes.length + 
+    selectedLocations.length
+  
   return (
-    <div 
-      className={`space-y-4 transform transition-all duration-500 ${
-        isVisible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
-      }`}
-    >
-      <div className="flex flex-wrap gap-3 items-center">
-        <FilterDropdown 
-          icon={<Calendar className="h-4 w-4" />}
-          label="Date"
-          items={months}
-          selected={selectedMonths}
-          onToggle={handleMonthToggle}
-        />
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h2 className="text-2xl font-cyberpunk tracking-wide">FILTER MATRIX</h2>
         
-        <FilterDropdown 
-          icon={<Tag className="h-4 w-4" />}
-          label="Category"
-          items={categories}
-          selected={selectedCategories}
-          onToggle={handleCategoryToggle}
-        />
-        
-        <FilterDropdown 
-          icon={<Trophy className="h-4 w-4" />}
-          label="Prize Pool"
-          items={prizeRanges}
-          selected={selectedPrizes}
-          onToggle={handlePrizeToggle}
-        />
-        
-        <FilterDropdown 
-          icon={<Star className="h-4 w-4" />}
-          label="Location"
-          items={locations}
-          selected={selectedLocations}
-          onToggle={handleLocationToggle}
-        />
-        
-        {activeFiltersCount > 0 && (
-          <button
-            className="flex items-center gap-1 px-3 py-2 text-sm rounded-md bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors animate-scaleIn"
+        {activeFilterCount > 0 && (
+          <Button 
+            variant="ghost" 
+            size="sm" 
             onClick={clearAllFilters}
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
           >
-            <X className="h-3.5 w-3.5" />
-            <span>Clear filters ({activeFiltersCount})</span>
-          </button>
+            <X className="h-4 w-4" />
+            <span>Clear all filters</span>
+            <span className="ml-1 bg-muted rounded-full w-5 h-5 flex items-center justify-center text-xs">
+              {activeFilterCount}
+            </span>
+          </Button>
         )}
       </div>
       
-      {/* Active filters display */}
-      {activeFiltersCount > 0 && (
-        <div 
-          className="flex flex-wrap gap-2 animate-fadeIn"
-        >
-          {[...selectedMonths, ...selectedCategories, ...selectedPrizes, ...selectedLocations].map((filter, index) => (
-            <span
-              key={filter}
-              className="cyberbadge animate-scaleIn"
-              style={{ animationDelay: `${index * 0.05}s` }}
+      <div className="flex flex-wrap gap-3">
+        {/* Month Filter */}
+        <Popover open={monthsOpen} onOpenChange={setMonthsOpen}>
+          <PopoverTrigger asChild>
+            <Button 
+              variant="outline" 
+              className={`flex items-center gap-2 ${selectedMonths.length > 0 ? 'border-primary/50 bg-primary/5' : ''}`}
             >
-              {filter}
-            </span>
+              <Calendar className="h-4 w-4" />
+              <span>Date</span>
+              {selectedMonths.length > 0 && (
+                <span className="ml-1 bg-primary/20 rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                  {selectedMonths.length}
+                </span>
+              )}
+              <ChevronDown className="h-4 w-4 ml-1" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-64 p-0" align="start">
+            <Command>
+              <CommandInput placeholder="Search months..." />
+              <CommandList>
+                <CommandEmpty>No results found.</CommandEmpty>
+                <CommandGroup>
+                  {months.map(month => (
+                    <CommandItem
+                      key={month}
+                      onSelect={() => toggleMonth(month)}
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
+                      <div className={`flex h-4 w-4 items-center justify-center rounded border ${
+                        selectedMonths.includes(month) ? 'bg-primary border-primary' : 'border-muted'
+                      }`}>
+                        {selectedMonths.includes(month) && <Check className="h-3 w-3 text-white" />}
+                      </div>
+                      <span>{month}</span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+        
+        {/* Category Filter */}
+        <Popover open={categoriesOpen} onOpenChange={setCategoriesOpen}>
+          <PopoverTrigger asChild>
+            <Button 
+              variant="outline" 
+              className={`flex items-center gap-2 ${selectedCategories.length > 0 ? 'border-primary/50 bg-primary/5' : ''}`}
+            >
+              <Tag className="h-4 w-4" />
+              <span>Category</span>
+              {selectedCategories.length > 0 && (
+                <span className="ml-1 bg-primary/20 rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                  {selectedCategories.length}
+                </span>
+              )}
+              <ChevronDown className="h-4 w-4 ml-1" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-64 p-0" align="start">
+            <Command>
+              <CommandInput placeholder="Search categories..." />
+              <CommandList>
+                <CommandEmpty>No results found.</CommandEmpty>
+                <CommandGroup>
+                  {categories.map(category => (
+                    <CommandItem
+                      key={category}
+                      onSelect={() => toggleCategory(category)}
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
+                      <div className={`flex h-4 w-4 items-center justify-center rounded border ${
+                        selectedCategories.includes(category) ? 'bg-primary border-primary' : 'border-muted'
+                      }`}>
+                        {selectedCategories.includes(category) && <Check className="h-3 w-3 text-white" />}
+                      </div>
+                      <span>{category}</span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+        
+        {/* Prize Filter */}
+        <Popover open={prizesOpen} onOpenChange={setPrizesOpen}>
+          <PopoverTrigger asChild>
+            <Button 
+              variant="outline" 
+              className={`flex items-center gap-2 ${selectedPrizes.length > 0 ? 'border-primary/50 bg-primary/5' : ''}`}
+            >
+              <Trophy className="h-4 w-4" />
+              <span>Prize Pool</span>
+              {selectedPrizes.length > 0 && (
+                <span className="ml-1 bg-primary/20 rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                  {selectedPrizes.length}
+                </span>
+              )}
+              <ChevronDown className="h-4 w-4 ml-1" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-64 p-0" align="start">
+            <Command>
+              <CommandList>
+                <CommandGroup>
+                  {prizes.map(prize => (
+                    <CommandItem
+                      key={prize}
+                      onSelect={() => togglePrize(prize)}
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
+                      <div className={`flex h-4 w-4 items-center justify-center rounded border ${
+                        selectedPrizes.includes(prize) ? 'bg-primary border-primary' : 'border-muted'
+                      }`}>
+                        {selectedPrizes.includes(prize) && <Check className="h-3 w-3 text-white" />}
+                      </div>
+                      <span>{prize}</span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+        
+        {/* Location Filter */}
+        <Popover open={locationsOpen} onOpenChange={setLocationsOpen}>
+          <PopoverTrigger asChild>
+            <Button 
+              variant="outline" 
+              className={`flex items-center gap-2 ${selectedLocations.length > 0 ? 'border-primary/50 bg-primary/5' : ''}`}
+            >
+              <Globe className="h-4 w-4" />
+              <span>Location</span>
+              {selectedLocations.length > 0 && (
+                <span className="ml-1 bg-primary/20 rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                  {selectedLocations.length}
+                </span>
+              )}
+              <ChevronDown className="h-4 w-4 ml-1" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-64 p-0" align="start">
+            <Command>
+              <CommandList>
+                <CommandGroup>
+                  {locations.map(location => (
+                    <CommandItem
+                      key={location}
+                      onSelect={() => toggleLocation(location)}
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
+                      <div className={`flex h-4 w-4 items-center justify-center rounded border ${
+                        selectedLocations.includes(location) ? 'bg-primary border-primary' : 'border-muted'
+                      }`}>
+                        {selectedLocations.includes(location) && <Check className="h-3 w-3 text-white" />}
+                      </div>
+                      <span>{location}</span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+      </div>
+      
+      {/* Active Filters Display */}
+      {activeFilterCount > 0 && (
+        <div className="flex flex-wrap gap-2 mt-3">
+          {selectedMonths.map(month => (
+            <div 
+              key={month}
+              className="bg-primary/10 border border-primary/20 text-sm rounded-full px-3 py-1 flex items-center gap-1"
+            >
+              <span>{month}</span>
+              <X 
+                className="h-3 w-3 cursor-pointer hover:text-primary" 
+                onClick={() => toggleMonth(month)}
+              />
+            </div>
+          ))}
+          
+          {selectedCategories.map(category => (
+            <div 
+              key={category}
+              className="bg-secondary/10 border border-secondary/20 text-sm rounded-full px-3 py-1 flex items-center gap-1"
+            >
+              <span>{category}</span>
+              <X 
+                className="h-3 w-3 cursor-pointer hover:text-secondary" 
+                onClick={() => toggleCategory(category)}
+              />
+            </div>
+          ))}
+          
+          {selectedPrizes.map(prize => (
+            <div 
+              key={prize}
+              className="bg-warning/10 border border-warning/20 text-sm rounded-full px-3 py-1 flex items-center gap-1"
+            >
+              <span>{prize}</span>
+              <X 
+                className="h-3 w-3 cursor-pointer hover:text-warning" 
+                onClick={() => togglePrize(prize)}
+              />
+            </div>
+          ))}
+          
+          {selectedLocations.map(location => (
+            <div 
+              key={location}
+              className="bg-accent/10 border border-accent/20 text-sm rounded-full px-3 py-1 flex items-center gap-1"
+            >
+              <span>{location}</span>
+              <X 
+                className="h-3 w-3 cursor-pointer hover:text-accent" 
+                onClick={() => toggleLocation(location)}
+              />
+            </div>
           ))}
         </div>
       )}
     </div>
-  )
-}
-
-interface FilterDropdownProps {
-  icon: React.ReactNode
-  label: string
-  items: string[]
-  selected: string[]
-  onToggle: (item: string) => void
-}
-
-function FilterDropdown({ icon, label, items, selected, onToggle }: FilterDropdownProps) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="cyberpunk-button flex items-center gap-2">
-          {icon}
-          <span>{label}</span>
-          {selected.length > 0 && (
-            <span className="flex items-center justify-center w-5 h-5 text-xs rounded-full bg-primary text-primary-foreground">
-              {selected.length}
-            </span>
-          )}
-          <ChevronDown className="h-4 w-4 opacity-50" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56 bg-card/95 backdrop-blur-lg border border-primary/30">
-        <DropdownMenuLabel className="flex items-center gap-2">
-          <Filter className="h-4 w-4" />
-          <span>Select {label}</span>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <div className="max-h-[300px] overflow-y-auto py-1">
-          {items.map((item) => (
-            <DropdownMenuCheckboxItem
-              key={item}
-              checked={selected.includes(item)}
-              onCheckedChange={() => onToggle(item)}
-              className="cursor-pointer"
-            >
-              {item}
-            </DropdownMenuCheckboxItem>
-          ))}
-        </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
   )
 }
 
